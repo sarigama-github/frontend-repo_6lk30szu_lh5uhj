@@ -1,10 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "./components/Header";
 import SaveSpot from "./components/SaveSpot";
 import SpotList from "./components/SpotList";
-import HowItWorks from "./components/HowItWorks";
 import CompactBar from "./components/CompactBar";
-import PlatformTips from "./components/PlatformTips";
+
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function mapUrl(lat, lng) {
+  const latlng = `${lat},${lng}`;
+  return isIOS()
+    ? `https://maps.apple.com/?daddr=${latlng}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${latlng}`;
+}
 
 function App() {
   const [spots, setSpots] = useState(() => {
@@ -50,16 +60,34 @@ function App() {
     );
   };
 
+  // Handle PWA shortcuts: /?action=save or /?action=go
+  const handledShortcut = useRef(false);
+  useEffect(() => {
+    if (handledShortcut.current) return;
+    handledShortcut.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    if (!action) return;
+
+    if (action === "save") {
+      quickSave();
+    } else if (action === "go") {
+      if (lastSpot) {
+        const url = mapUrl(lastSpot.latitude, lastSpot.longitude);
+        window.location.href = url;
+      } else {
+        alert("No saved spot yet. Save a spot first.");
+      }
+    }
+  }, [lastSpot]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-emerald-50">
       <div className="max-w-md mx-auto px-3 sm:px-4 py-5">
         <Header />
 
         <div className="mt-4 grid grid-cols-1 gap-4">
-          {/* Compact top bar for small-screen / widget-like usage */}
           <CompactBar lastSpot={lastSpot} onQuickSave={quickSave} />
-
-          {/* Full form for detailed labels/notes */}
           <SaveSpot onSave={addSpot} />
 
           {lastSpot && (
@@ -70,13 +98,10 @@ function App() {
           )}
 
           <SpotList spots={spots} onDelete={deleteSpot} />
-
-          <HowItWorks />
-          <PlatformTips />
         </div>
 
         <footer className="mt-8 text-center text-xs text-gray-500">
-          Privacy-friendly: your locations are stored only on your device.
+          Privacy-friendly: your locations are stored only on your device and available offline.
         </footer>
       </div>
     </div>

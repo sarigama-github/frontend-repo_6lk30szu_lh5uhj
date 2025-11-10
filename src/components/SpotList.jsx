@@ -1,5 +1,17 @@
 import { Compass, Navigation, Trash2 } from "lucide-react";
 
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function mapUrl(lat, lng) {
+  const latlng = `${lat},${lng}`;
+  return isIOS()
+    ? `https://maps.apple.com/?daddr=${latlng}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${latlng}`;
+}
+
 export default function SpotList({ spots, onNavigate, onDelete }) {
   if (!spots.length) {
     return (
@@ -24,7 +36,7 @@ export default function SpotList({ spots, onNavigate, onDelete }) {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={`https://maps.apple.com/?daddr=${s.latitude},${s.longitude}&dirflg=d`}
+              href={mapUrl(s.latitude, s.longitude)}
               target="_blank"
               rel="noreferrer"
               onClick={() => onNavigate?.(s)}
